@@ -402,7 +402,7 @@ def morphological_chan_vese(image, iterations, init_level_set='checkerboard',
 
     u = np.int8(init_level_set > 0)
 
-    iter_callback(u)
+    # iter_callback(u)
 
     for _ in range(iterations):
 
@@ -423,7 +423,7 @@ def morphological_chan_vese(image, iterations, init_level_set='checkerboard',
         for _ in range(smoothing):
             u = _curvop(u)
 
-        iter_callback(u)
+        # iter_callback(u)
 
     return u
 
@@ -526,7 +526,7 @@ def morphological_geodesic_active_contour(gimage, iterations,
 
     u = np.int8(init_level_set > 0)
 
-    iter_callback(u)
+    # iter_callback(u)
 
     for _ in range(iterations):
 
@@ -550,6 +550,6 @@ def morphological_geodesic_active_contour(gimage, iterations,
         for _ in range(smoothing):
             u = _curvop(u)
 
-        iter_callback(u)
+        # iter_callback(u)
 
     return u

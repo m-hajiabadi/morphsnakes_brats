@@ -8,6 +8,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 
 import morphsnakes as ms
+import nibabel as nib
 
 # in case you are running on machine without display, e.g. server
 if os.environ.get('DISPLAY', '') == '':
@@ -20,7 +21,7 @@ PATH_IMG_LAKES = 'images/lakes3.jpg'
 PATH_IMG_CAMERA = 'images/camera.png'
 PATH_IMG_COINS = 'images/coins.png'
 PATH_ARRAY_CONFOCAL = 'images/confocal.npy'
-
+PATH_BRATS = "images/BraTS2021_00003_flair.nii.gz"
 
 def visual_callback_2d(background, fig=None):
     """
@@ -261,18 +262,59 @@ def example_confocal3d():
                                smoothing=1, lambda1=1, lambda2=2,
                                iter_callback=callback)
 
+def example_brats():
+    logging.info('Running: example_brats3d (MorphGAC)...')
+    
+    img = nib.load(PATH_BRATS)
+    data = img.get_fdata() / 255.0
+    data = ms.normalize_image(ms.equalize_histogram(data))
+    affine = img.affine
+    
+    plt.figure('Select Region')
+    plt.imshow(data[:,:,100], cmap='gray')
+    plt.title("Select the initial region by clicking on the image")
+    
+    # Capture mouse clicks
+    points = plt.ginput(1, timeout=-1)
+    plt.close()
+    
+    y, x = np.min(points, axis=0)
+    y, x = int(y), int(x)
+    
+    print(y,x)
+    
+    # plt.imshow(data[:,:,85])
+    # plt.show()
+    # sys.exit()
+    gimg = ms.inverse_gaussian_gradient(data, alpha=1000, sigma=5.48)
+    
+    # init_ls = ms.circle_level_set(img.shape, (130, 70, 77), 20) #6
+    init_ls = ms.circle_level_set(img.shape, (x, y, 80), 15)
+    # img = nib.Nifti1Image(init_ls, affine=affine)
+    # nib.save(img, 'brats2.nii.gz')
+    
+    callback = None
+    
+    out = ms.morphological_geodesic_active_contour(gimg, iterations=145,
+                                             init_level_set=init_ls,
+                                             smoothing=1, threshold=0.31,
+                                             balloon=1, iter_callback=callback)
+    print(np.unique(out))
+    img = nib.Nifti1Image(out, affine=affine)
+    nib.save(img, 'brats3.nii.gz')
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    example_nodule()
-    example_starfish()
-    example_coins()
-    example_lakes()
-    example_camera()
+    # example_nodule()
+    # example_starfish()
+    # example_coins()
+    # example_lakes()
+    # example_camera()
 
     # Uncomment the following line to see a 3D example
     # This is skipped by default since mplot3d is VERY slow plotting 3d meshes
     # example_confocal3d()
+    example_brats()
 
     logging.info("Done.")
     plt.show()

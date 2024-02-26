@@ -9,6 +9,8 @@ from matplotlib import pyplot as plt
 
 import morphsnakes as ms
 import nibabel as nib
+import math
+import torchio as tio
 
 # in case you are running on machine without display, e.g. server
 if os.environ.get('DISPLAY', '') == '':
@@ -21,7 +23,7 @@ PATH_IMG_LAKES = 'images/lakes3.jpg'
 PATH_IMG_CAMERA = 'images/camera.png'
 PATH_IMG_COINS = 'images/coins.png'
 PATH_ARRAY_CONFOCAL = 'images/confocal.npy'
-PATH_BRATS = "images/BraTS2021_00003_flair.nii.gz"
+PATH_BRATS = "images/BraTS2021_00006_flair.nii.gz"
 
 def visual_callback_2d(background, fig=None):
     """
@@ -266,32 +268,28 @@ def example_brats():
     logging.info('Running: example_brats3d (MorphGAC)...')
     
     img = nib.load(PATH_BRATS)
-    data = img.get_fdata() / 255.0
-    data = ms.normalize_image(ms.equalize_histogram(data))
+    data = img.get_fdata()
     affine = img.affine
-    
+        
     plt.figure('Select Region')
-    plt.imshow(data[:,:,100], cmap='gray')
+    plt.imshow(data[:,:,77], cmap='gray')
     plt.title("Select the initial region by clicking on the image")
     
     # Capture mouse clicks
-    points = plt.ginput(1, timeout=-1)
+    points = plt.ginput(2, timeout=-1)
     plt.close()
     
-    y, x = np.min(points, axis=0)
-    y, x = int(y), int(x)
+    x_center, y_center = points[0][1], points[0][0]
+    r = int(math.sqrt((x_center - points[1][1])**2 + (y_center - points[1][0])**2))
+    x_center, y_center = int(x_center), int(y_center)
     
-    print(y,x)
+    print(f'Center : {x_center}, {y_center}')
+    print(f'radius : {r}')
     
-    # plt.imshow(data[:,:,85])
-    # plt.show()
-    # sys.exit()
     gimg = ms.inverse_gaussian_gradient(data, alpha=1000, sigma=5.48)
     
-    # init_ls = ms.circle_level_set(img.shape, (130, 70, 77), 20) #6
-    init_ls = ms.circle_level_set(img.shape, (x, y, 80), 15)
-    # img = nib.Nifti1Image(init_ls, affine=affine)
-    # nib.save(img, 'brats2.nii.gz')
+    init_ls = ms.circle_level_set(data.shape, (x_center, y_center, 77), r)
+    
     
     callback = None
     
@@ -301,10 +299,13 @@ def example_brats():
                                              balloon=1, iter_callback=callback)
     print(np.unique(out))
     img = nib.Nifti1Image(out, affine=affine)
-    nib.save(img, 'brats3.nii.gz')
+    output_file_name = 'seg_' + PATH_BRATS.split('images/')[-1]
+    nib.save(img, output_file_name)
+
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # logging.info("Start!")
     # example_nodule()
     # example_starfish()
     # example_coins()

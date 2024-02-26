@@ -55,6 +55,8 @@ from itertools import cycle
 
 import numpy as np
 from scipy import ndimage as ndi
+from skimage import exposure
+from scipy.ndimage import map_coordinates
 
 __all__ = [
     'morphological_chan_vese',
@@ -553,3 +555,37 @@ def morphological_geodesic_active_contour(gimage, iterations,
         # iter_callback(u)
 
     return u
+
+
+
+def equalize_histogram(image):
+    eq_image = exposure.equalize_hist(image)
+    return eq_image
+
+def normalize_image(image):
+    # Normalize the image to the range [0, 1]
+    image_min = image.min()
+    image_max = image.max()
+
+    # normalized_image = (image - image_min) / (image_max - image_min + 0.0001)
+    normalized_image = ((image - image_min) * (255.0 / (image_max - image_min + 0.0001))).astype(np.uint8)
+
+    return normalized_image 
+
+def resize_nifti(data, old_affine, new_shape):
+    # Create a grid of coordinates for the new shape
+    coords = [np.linspace(0, size - 1, num) for size, num in zip(data.shape, new_shape)]
+    grid = np.meshgrid(*coords, indexing='ij')
+
+    # Resample the image using scipy.ndimage.map_coordinates
+    resized_data = map_coordinates(data, grid, order=1, mode='constant', cval=0.0)
+
+    # Reshape the data to the new shape
+    resized_data = resized_data.reshape(new_shape)
+
+    # Update the affine matrix based on the resizing
+    new_affine = np.copy(old_affine)
+    for i in range(3):
+        new_affine[i, i] *= (data.shape[i] - 1) / (new_shape[i] - 1)
+        
+    return resized_data, new_affine

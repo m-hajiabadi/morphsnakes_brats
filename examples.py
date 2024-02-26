@@ -10,7 +10,6 @@ from matplotlib import pyplot as plt
 import morphsnakes as ms
 import nibabel as nib
 import math
-import torchio as tio
 
 # in case you are running on machine without display, e.g. server
 if os.environ.get('DISPLAY', '') == '':
@@ -23,7 +22,7 @@ PATH_IMG_LAKES = 'images/lakes3.jpg'
 PATH_IMG_CAMERA = 'images/camera.png'
 PATH_IMG_COINS = 'images/coins.png'
 PATH_ARRAY_CONFOCAL = 'images/confocal.npy'
-PATH_BRATS = "images/BraTS2021_00006_flair.nii.gz"
+PATH_BRATS = "images/BraTS2021_00006_t1.nii.gz"
 
 def visual_callback_2d(background, fig=None):
     """
@@ -289,23 +288,29 @@ def example_brats():
     gimg = ms.inverse_gaussian_gradient(data, alpha=1000, sigma=5.48)
     
     init_ls = ms.circle_level_set(data.shape, (x_center, y_center, 77), r)
+    # init_ls = ms.ellipsoid_level_set(data.shape, (x_center, y_center, 77), (r,r,r))
+    # init_ls = ms.checkerboard_level_set(data.shape)
+
+    callback = visual_callback_2d(data[:,:,77])
     
-    
-    callback = None
-    
-    out = ms.morphological_geodesic_active_contour(gimg, iterations=145,
+    out = ms.morphological_geodesic_active_contour(gimg, iterations=100,
                                              init_level_set=init_ls,
-                                             smoothing=1, threshold=0.31,
+                                             smoothing=1, threshold=0.51,
                                              balloon=1, iter_callback=callback)
+    
+    # out = ms.morphological_chan_vese(data, iterations=150,
+    #                            init_level_set=init_ls,
+    #                            smoothing=1, lambda1=2, lambda2=1,
+    #                            iter_callback=callback)
     print(np.unique(out))
     img = nib.Nifti1Image(out, affine=affine)
-    output_file_name = 'seg_' + PATH_BRATS.split('images/')[-1]
+    output_file_name = 'segchant1_' + PATH_BRATS.split('images/')[-1]
     nib.save(img, output_file_name)
 
 
 if __name__ == '__main__':
-    # logging.basicConfig(level=logging.DEBUG)
-    # logging.info("Start!")
+    logging.basicConfig(level=logging.DEBUG)
+    logging.info("Start!")
     # example_nodule()
     # example_starfish()
     # example_coins()
